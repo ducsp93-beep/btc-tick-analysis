@@ -47,7 +47,7 @@ MAX_RUNTIME_MINUTES = os.environ.get("MAX_RUNTIME_MINUTES")
 EPS = 1e-9
 
 # ---- Step 2: the numbers you defined -------------------------------------
-A_PRICE = 5
+A_PRICE = 6
 A_VOLUME = 6
 A_CASHFLOW = 7
 A_TIME = 18
@@ -58,9 +58,9 @@ R_CASHFLOW = 16
 R_TIME = 20
 
 H_PRICE = 40
-H_VOLUME = 6
-H_CASHFLOW = 5
-H_TIME = 20
+H_VOLUME = 9
+H_CASHFLOW = 6
+H_TIME = 25
 
 # ---- Step 3: buffer size ---------------------------------------------------
 # Per your spec: Max_count = Max(A_*, R_*). We also fold in H_* for safety,
