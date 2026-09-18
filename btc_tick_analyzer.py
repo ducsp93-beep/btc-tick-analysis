@@ -36,7 +36,7 @@ import websocket  # from websocket-client package
 
 PRODUCT_ID = "BTC-USD"
 COINBASE_WS_URL = "wss://ws-feed.exchange.coinbase.com"
-NTFY_URL = "https://ntfy.sh/btc-1st-notif"
+NTFY_URL = "https://ntfy.sh/btc-2nd-notif-good-time-ahead"
 
 # Optional: set the MAX_RUNTIME_MINUTES environment variable to make the
 # script exit cleanly after a fixed duration (used for the GitHub Actions
@@ -55,7 +55,7 @@ A_TIME = 10
 R_PRICE = 16
 R_VOLUME = 15
 R_CASHFLOW = 17
-R_TIME = 19
+R_TIME = 15
 
 H_PRICE = 40
 H_VOLUME = 8
