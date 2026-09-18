@@ -55,12 +55,12 @@ A_TIME = 10
 R_PRICE = 16
 R_VOLUME = 20
 R_CASHFLOW = 20
-R_TIME = 15
+R_TIME = 18
 
-H_PRICE = 42
+H_PRICE = 50
 H_VOLUME = 8
 H_CASHFLOW = 6
-H_TIME = 28
+H_TIME = 32
 
 # ---- Step 3: buffer size ---------------------------------------------------
 # Per your spec: Max_count = Max(A_*, R_*). We also fold in H_* for safety,
