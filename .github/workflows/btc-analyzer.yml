@@ -1,18 +1,24 @@
 name: BTC Tick Analyzer
 
 on:
-  # 11:00 UTC = 18:00 (6 PM) in Vietnam (ICT, UTC+7). Adjust for your timezone
-  # if different. GitHub cron times are always UTC and are "best effort" -
-  # expect a few minutes of drift, especially during busy periods.
+  # 11:05 UTC = 18:05 (6 PM) in Vietnam (ICT, UTC+7). Adjust for your timezone
+  # if different. Deliberately not on the exact hour (11:00) - GitHub's
+  # scheduler sees the most load right at the top of every hour, so a few
+  # minutes off reduces delay. GitHub cron is always "best effort" - expect
+  # some minutes of drift regardless.
   schedule:
     - cron: "5 11 * * *"
   # Lets you also start it by hand from the Actions tab, any time.
   workflow_dispatch: {}
 
-# No top-level `concurrency` block here on purpose: concurrency would queue
-# a second run instead of starting it, which stops the guard step below
-# from ever seeing it and deciding what to do. The guard step is what
-# enforces "manual always wins" instead.
+# NOTE: intentionally no `concurrency:` block here. If a queued run is
+# waiting on a concurrency slot and the run holding that slot gets
+# cancelled (rather than finishing normally), GitHub can leave the queued
+# run stuck waiting forever - so a manually cancelled run could silently
+# prevent the next scheduled run from ever starting. The guard step below
+# does the same "don't double-run" job without that risk: every trigger
+# (schedule or manual) always starts its own job immediately, and the
+# guard step decides in seconds whether to actually do work or skip.
 
 permissions:
   actions: read
@@ -25,28 +31,41 @@ jobs:
     # run and the scheduled run both last at most 3 hours.
     timeout-minutes: 180
     steps:
-      - name: Decide whether to run or skip
+      - name: Check if another run is already active
         id: guard
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EVENT_NAME: ${{ github.event_name }}
-          THIS_RUN_ID: ${{ github.run_id }}
         run: |
           resp=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/actions/workflows/btc-analyzer.yml/runs?status=in_progress")
+          count=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('total_count', 0))")
+          echo "In-progress runs (including this one): $count"
+          if [ "$count" -gt 1 ]; then
+            echo "Another run is already active (likely a manual run) - skipping this trigger."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
 
-          # IDs of any OTHER in-progress runs (excluding this one).
-          other_ids=$(echo "$resp" | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-ids = [str(r['id']) for r in data.get('workflow_runs', []) if str(r['id']) != '$THIS_RUN_ID']
-print('\n'.join(ids))
-")
-          other_count=$(echo "$other_ids" | grep -c . || true)
-          echo "Other in-progress runs: $other_count"
+      - name: Checkout repo
+        if: steps.guard.outputs.skip != 'true'
+        uses: actions/checkout@v4
 
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            # Manual runs always take priority: never skip, and cancel any
-            # scheduled run that happened to already be active.
-            echo "skip=false" >> "$GITHU
+      - name: Set up Python
+        if: steps.guard.outputs.skip != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        if: steps.guard.outputs.skip != 'true'
+        run: pip install -r requirements.txt
+
+      - name: Run analyzer for ~3 hours
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          # Slightly under the 180-minute job timeout so the script can
+          # close its websocket and exit cleanly instead of being killed.
+          MAX_RUNTIME_MINUTES: "175"
+        run: python btc_tick_analyzer.py
