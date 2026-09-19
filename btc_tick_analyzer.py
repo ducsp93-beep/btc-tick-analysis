@@ -59,7 +59,7 @@ R_TIME = 18
 
 H_PRICE = 55
 H_VOLUME = 10
-H_CASHFLOW = 8
+H_CASHFLOW = 20
 H_TIME = 32
 
 # ---- Step 3: buffer size ---------------------------------------------------
